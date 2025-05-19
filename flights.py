@@ -1,31 +1,30 @@
-# flights.py
 import os
+import requests
 from dotenv import load_dotenv
-from amadeus import Client, ResponseError
 
 load_dotenv()
 
-AMADEUS_CLIENT_ID     = os.getenv("AMADEUS_CLIENT_ID")
-AMADEUS_CLIENT_SECRET = os.getenv("AMADEUS_CLIENT_SECRET")
-
-amadeus = Client(
-    client_id=AMADEUS_CLIENT_ID,
-    client_secret=AMADEUS_CLIENT_SECRET
-)
+AVIATIONSTACK_ACCESS_KEY = os.getenv("AVIATIONSTACK_ACCESS_KEY")
 
 def get_flight_price(origin_code: str, destination_code: str, date: str):
+    url = f"http://api.aviationstack.com/v1/flights"
+    params = {
+        'access_key': AVIATIONSTACK_ACCESS_KEY,
+        'origin': origin_code,
+        'destination': destination_code,
+        'date': date,
+        'limit': 1  # Limit to 1 result
+    }
+    
     try:
-        response = amadeus.shopping.flight_offers_search.get(
-            originLocationCode=origin_code,
-            destinationLocationCode=destination_code,
-            departureDate=date,
-            adults=1,
-            max=1
-        )
-        offers = response.data
-        if not offers:
+        response = requests.get(url, params=params)
+        data = response.json()
+        
+        # Check if the response contains flight data
+        if 'data' in data and data['data']:
+            return data['data'][0]['price']  # Adjust based on the actual response structure
+        else:
             return None
-        return offers[0]["price"]["total"]
-    except ResponseError as e:
-        print(f"Amadeus API error: {e}")
+    except Exception as e:
+        print(f"Error fetching flight data: {e}")
         return None
